@@ -1,0 +1,8 @@
+bin/
+dist/
+data/
+*.log
+.env
+.DS_Store
+coverage.out
+vendor/

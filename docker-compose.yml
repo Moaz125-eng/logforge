@@ -1,0 +1,16 @@
+services:
+  logforge:
+    build: .
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      LOGFORGE_HTTP_ADDR: ":8080"
+      LOGFORGE_TCP_ADDR: ":9090"
+      LOGFORGE_DATA_DIR: "/data"
+      LOGFORGE_WORKERS: "8"
+    volumes:
+      - logforge-data:/data
+
+volumes:
+  logforge-data:
