@@ -21,11 +21,13 @@ func main() {
 	defer cancel()
 
 	parserSvc := parser.NewService()
-	sink := func(e logentry.Entry) error {
+	innerSink := func(e logentry.Entry) error {
 		_, err := parserSvc.Parse("json", e.Raw)
 		return err
 	}
-	ingestSvc := ingest.NewService(cfg, sink)
+	pipelineSink := ingest.WrapSink(cfg, innerSink)
+	pipelineSink.Start(ctx)
+	ingestSvc := ingest.NewService(cfg, pipelineSink.Sink)
 	if err := ingestSvc.Start(ctx); err != nil {
 		log.Fatalf("tcp ingest failed: %v", err)
 	}
@@ -51,5 +53,6 @@ func main() {
 	defer shutdownCancel()
 	cancel()
 	ingestSvc.Wait()
+	pipelineSink.Wait()
 	_ = httpServer.Shutdown(shutdownCtx)
 }
