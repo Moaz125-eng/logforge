@@ -5,12 +5,14 @@ import (
 
 	"github.com/Moaz125-eng/logforge/internal/config"
 	"github.com/Moaz125-eng/logforge/internal/ingest"
+	"github.com/Moaz125-eng/logforge/internal/parser"
 )
 
-func NewMux(cfg config.Config, ingestSvc *ingest.Service) *http.ServeMux {
+func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Service) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", HealthHandler(cfg.NodeID))
 	ingestSvc.Register(mux)
+	parserSvc.RegisterRoutes(mux)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)

@@ -10,6 +10,7 @@ import (
 
 	"github.com/Moaz125-eng/logforge/internal/config"
 	"github.com/Moaz125-eng/logforge/internal/ingest"
+	"github.com/Moaz125-eng/logforge/internal/parser"
 	"github.com/Moaz125-eng/logforge/internal/server"
 	"github.com/Moaz125-eng/logforge/pkg/logentry"
 )
@@ -19,13 +20,17 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	sink := func(e logentry.Entry) error { return nil }
+	parserSvc := parser.NewService()
+	sink := func(e logentry.Entry) error {
+		_, err := parserSvc.Parse("json", e.Raw)
+		return err
+	}
 	ingestSvc := ingest.NewService(cfg, sink)
 	if err := ingestSvc.Start(ctx); err != nil {
 		log.Fatalf("tcp ingest failed: %v", err)
 	}
 
-	mux := server.NewMux(cfg, ingestSvc)
+	mux := server.NewMux(cfg, ingestSvc, parserSvc)
 	httpServer := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: mux,
