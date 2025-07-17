@@ -11,6 +11,7 @@ import (
 	"github.com/Moaz125-eng/logforge/internal/config"
 	"github.com/Moaz125-eng/logforge/internal/ingest"
 	"github.com/Moaz125-eng/logforge/internal/parser"
+	"github.com/Moaz125-eng/logforge/internal/pipeline"
 	"github.com/Moaz125-eng/logforge/internal/server"
 	"github.com/Moaz125-eng/logforge/pkg/logentry"
 )
