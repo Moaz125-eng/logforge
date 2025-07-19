@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/Moaz125-eng/logforge/internal/config"
+	"github.com/Moaz125-eng/logforge/internal/index"
 	"github.com/Moaz125-eng/logforge/internal/ingest"
 	"github.com/Moaz125-eng/logforge/internal/parser"
 	"github.com/Moaz125-eng/logforge/internal/pipeline"
@@ -22,9 +23,11 @@ func main() {
 	defer cancel()
 
 	parserSvc := parser.NewService()
+	pipeSvc := pipeline.NewService(cfg, parserSvc.Parse, func(e logentry.Entry) error { return nil })
+	pipeSvc.Start(ctx)
 	innerSink := func(e logentry.Entry) error {
-		_, err := parserSvc.Parse("json", e.Raw)
-		return err
+		pipeSvc.Process(e)
+		return nil
 	}
 	pipelineSink := ingest.WrapSink(cfg, innerSink)
 	pipelineSink.Start(ctx)
@@ -55,5 +58,6 @@ func main() {
 	cancel()
 	ingestSvc.Wait()
 	pipelineSink.Wait()
+	pipeSvc.Close()
 	_ = httpServer.Shutdown(shutdownCtx)
 }
