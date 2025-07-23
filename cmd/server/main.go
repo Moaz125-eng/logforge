@@ -13,6 +13,7 @@ import (
 	"github.com/Moaz125-eng/logforge/internal/ingest"
 	"github.com/Moaz125-eng/logforge/internal/parser"
 	"github.com/Moaz125-eng/logforge/internal/pipeline"
+	"github.com/Moaz125-eng/logforge/internal/query"
 	"github.com/Moaz125-eng/logforge/internal/server"
 	"github.com/Moaz125-eng/logforge/pkg/logentry"
 )
@@ -23,7 +24,11 @@ func main() {
 	defer cancel()
 
 	parserSvc := parser.NewService()
-	pipeSvc := pipeline.NewService(cfg, parserSvc.Parse, func(e logentry.Entry) error { return nil })
+	indexSvc := index.NewService()
+	pipeSvc := pipeline.NewService(cfg, parserSvc.Parse, func(e logentry.Entry) error {
+		indexSvc.Index(e)
+		return nil
+	})
 	pipeSvc.Start(ctx)
 	innerSink := func(e logentry.Entry) error {
 		pipeSvc.Process(e)
@@ -36,7 +41,7 @@ func main() {
 		log.Fatalf("tcp ingest failed: %v", err)
 	}
 
-	mux := server.NewMux(cfg, ingestSvc, parserSvc)
+	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc)
 	httpServer := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: mux,
