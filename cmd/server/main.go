@@ -15,6 +15,7 @@ import (
 	"github.com/Moaz125-eng/logforge/internal/pipeline"
 	"github.com/Moaz125-eng/logforge/internal/query"
 	"github.com/Moaz125-eng/logforge/internal/server"
+	"github.com/Moaz125-eng/logforge/internal/storage"
 	"github.com/Moaz125-eng/logforge/pkg/logentry"
 )
 
@@ -24,10 +25,14 @@ func main() {
 	defer cancel()
 
 	parserSvc := parser.NewService()
+	storageSvc, err := storage.NewService(cfg)
+	if err != nil {
+		log.Fatalf("storage init failed: %v", err)
+	}
 	indexSvc := index.NewService()
 	pipeSvc := pipeline.NewService(cfg, parserSvc.Parse, func(e logentry.Entry) error {
 		indexSvc.Index(e)
-		return nil
+		return storageSvc.Persist(e)
 	})
 	pipeSvc.Start(ctx)
 	innerSink := func(e logentry.Entry) error {
@@ -41,7 +46,8 @@ func main() {
 		log.Fatalf("tcp ingest failed: %v", err)
 	}
 
-	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc)
+	queryEngine := query.NewEngine(indexSvc.Store())
+	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc, queryEngine, storageSvc)
 	httpServer := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: mux,
@@ -64,5 +70,6 @@ func main() {
 	ingestSvc.Wait()
 	pipelineSink.Wait()
 	pipeSvc.Close()
+	_ = storageSvc.Close()
 	_ = httpServer.Shutdown(shutdownCtx)
 }
