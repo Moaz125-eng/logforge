@@ -11,6 +11,7 @@ import (
 
 type Service struct {
 	manager *Manager
+	worker  *RetentionWorker
 }
 
 func NewService(cfg config.Config) (*Service, error) {
@@ -18,7 +19,10 @@ func NewService(cfg config.Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{manager: manager}, nil
+	policy := NewRetentionPolicy(cfg.DataDir, cfg.RetentionDays)
+	worker := NewRetentionWorker(policy, time.Hour)
+	worker.Start()
+	return &Service{manager: manager, worker: worker}, nil
 }
 
 func (s *Service) Persist(entry logentry.Entry) error {
