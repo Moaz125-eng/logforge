@@ -4,14 +4,16 @@ import (
 	"net/http"
 
 	"github.com/Moaz125-eng/logforge/internal/config"
+	"github.com/Moaz125-eng/logforge/internal/forward"
 	"github.com/Moaz125-eng/logforge/internal/ingest"
 	"github.com/Moaz125-eng/logforge/internal/index"
 	"github.com/Moaz125-eng/logforge/internal/parser"
 	"github.com/Moaz125-eng/logforge/internal/query"
 	"github.com/Moaz125-eng/logforge/internal/storage"
+	"github.com/Moaz125-eng/logforge/internal/stream"
 )
 
-func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Service, indexSvc *index.Service, queryEngine *query.Engine, storageSvc *storage.Service) *http.ServeMux {
+func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Service, indexSvc *index.Service, queryEngine *query.Engine, storageSvc *storage.Service, streamSvc *stream.Service, forwardSvc *forward.Service) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", HealthHandler(cfg.NodeID))
 	ingestSvc.Register(mux)

@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/Moaz125-eng/logforge/internal/config"
+	"github.com/Moaz125-eng/logforge/internal/forward"
 	"github.com/Moaz125-eng/logforge/internal/index"
 	"github.com/Moaz125-eng/logforge/internal/ingest"
 	"github.com/Moaz125-eng/logforge/internal/parser"
