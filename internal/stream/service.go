@@ -25,6 +25,10 @@ func (s *Service) Publish(entry logentry.Entry) {
 	s.filter.Publish(entry)
 }
 
+func (s *Service) HubCount() int {
+	return s.hub.Count()
+}
+
 func (s *Service) Register(mux *http.ServeMux) {
 	mux.Handle("/stream/tail", s.tail)
 	mux.HandleFunc("/stream/stats", func(w http.ResponseWriter, r *http.Request) {

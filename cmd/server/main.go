@@ -10,6 +10,7 @@ import (
 
 	"github.com/Moaz125-eng/logforge/internal/config"
 	"github.com/Moaz125-eng/logforge/internal/forward"
+	"github.com/Moaz125-eng/logforge/internal/metrics"
 	"github.com/Moaz125-eng/logforge/internal/index"
 	"github.com/Moaz125-eng/logforge/internal/ingest"
 	"github.com/Moaz125-eng/logforge/internal/parser"
@@ -17,6 +18,7 @@ import (
 	"github.com/Moaz125-eng/logforge/internal/query"
 	"github.com/Moaz125-eng/logforge/internal/server"
 	"github.com/Moaz125-eng/logforge/internal/storage"
+	"github.com/Moaz125-eng/logforge/internal/stream"
 	"github.com/Moaz125-eng/logforge/pkg/logentry"
 )
 
@@ -30,10 +32,23 @@ func main() {
 	if err != nil {
 		log.Fatalf("storage init failed: %v", err)
 	}
+	streamSvc := stream.NewService()
+	forwardSvc := forward.NewService(cfg)
+	metricsSvc := metrics.NewService()
 	indexSvc := index.NewService()
 	pipeSvc := pipeline.NewService(cfg, parserSvc.Parse, func(e logentry.Entry) error {
+		metricsSvc.Collector().IncIngested()
 		indexSvc.Index(e)
-		return storageSvc.Persist(e)
+		streamSvc.Publish(e)
+		metricsSvc.Collector().SetStreams(int32(streamSvc.HubCount()))
+		if err := forwardSvc.Agent().Forward(ctx, e); err == nil {
+			metricsSvc.Collector().IncForwarded()
+		}
+		if err := storageSvc.Persist(e); err != nil {
+			return err
+		}
+		metricsSvc.Collector().IncStored()
+		return nil
 	})
 	pipeSvc.Start(ctx)
 	innerSink := func(e logentry.Entry) error {
@@ -48,7 +63,7 @@ func main() {
 	}
 
 	queryEngine := query.NewEngine(indexSvc.Store())
-	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc, queryEngine, storageSvc)
+	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc, queryEngine, storageSvc, streamSvc, forwardSvc)
 	httpServer := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: mux,
