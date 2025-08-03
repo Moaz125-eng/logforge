@@ -63,7 +63,7 @@ func main() {
 	}
 
 	queryEngine := query.NewEngine(indexSvc.Store())
-	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc, queryEngine, storageSvc, streamSvc, forwardSvc)
+	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc, queryEngine, storageSvc, streamSvc, forwardSvc, metricsSvc)
 	httpServer := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: mux,
