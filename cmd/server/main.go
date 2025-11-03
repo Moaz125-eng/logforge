@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/Moaz125-eng/logforge/internal/alert"
 	"github.com/Moaz125-eng/logforge/internal/config"
 	"github.com/Moaz125-eng/logforge/internal/forward"
 	"github.com/Moaz125-eng/logforge/internal/metrics"
@@ -35,8 +36,10 @@ func main() {
 	streamSvc := stream.NewService()
 	forwardSvc := forward.NewService(cfg)
 	metricsSvc := metrics.NewService()
+	alertSvc := alert.NewService("")
 	indexSvc := index.NewService()
 	pipeSvc := pipeline.NewService(cfg, parserSvc.Parse, func(e logentry.Entry) error {
+		alertSvc.Watch(e)
 		metricsSvc.Collector().IncIngested()
 		indexSvc.Index(e)
 		streamSvc.Publish(e)
@@ -63,7 +66,7 @@ func main() {
 	}
 
 	queryEngine := query.NewEngine(indexSvc.Store())
-	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc, queryEngine, storageSvc, streamSvc, forwardSvc, metricsSvc)
+	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc, queryEngine, storageSvc, streamSvc, forwardSvc, metricsSvc, alertSvc)
 	httpServer := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: mux,
