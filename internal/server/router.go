@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 
+	"github.com/Moaz125-eng/logforge/internal/alert"
 	"github.com/Moaz125-eng/logforge/internal/config"
 	"github.com/Moaz125-eng/logforge/internal/forward"
 	"github.com/Moaz125-eng/logforge/internal/metrics"
@@ -14,7 +15,7 @@ import (
 	"github.com/Moaz125-eng/logforge/internal/stream"
 )
 
-func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Service, indexSvc *index.Service, queryEngine *query.Engine, storageSvc *storage.Service, streamSvc *stream.Service, forwardSvc *forward.Service, metricsSvc *metrics.Service) *http.ServeMux {
+func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Service, indexSvc *index.Service, queryEngine *query.Engine, storageSvc *storage.Service, streamSvc *stream.Service, forwardSvc *forward.Service, metricsSvc *metrics.Service, alertSvc *alert.Service) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", HealthHandler(cfg.NodeID))
 	ingestSvc.Register(mux)
@@ -25,6 +26,7 @@ func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Serv
 	streamSvc.Register(mux)
 	forwardSvc.Register(mux)
 	metricsSvc.Register(mux)
+	alertSvc.Register(mux)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
