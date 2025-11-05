@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Moaz125-eng/logforge/internal/alert"
+	"github.com/Moaz125-eng/logforge/internal/auth"
 	"github.com/Moaz125-eng/logforge/internal/config"
 	"github.com/Moaz125-eng/logforge/internal/forward"
 	"github.com/Moaz125-eng/logforge/internal/metrics"
@@ -15,10 +16,14 @@ import (
 	"github.com/Moaz125-eng/logforge/internal/stream"
 )
 
-func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Service, indexSvc *index.Service, queryEngine *query.Engine, storageSvc *storage.Service, streamSvc *stream.Service, forwardSvc *forward.Service, metricsSvc *metrics.Service, alertSvc *alert.Service) *http.ServeMux {
+func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Service, indexSvc *index.Service, queryEngine *query.Engine, storageSvc *storage.Service, streamSvc *stream.Service, forwardSvc *forward.Service, metricsSvc *metrics.Service, alertSvc *alert.Service, authSvc *auth.Service) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", HealthHandler(cfg.NodeID))
-	ingestSvc.Register(mux)
+	guard := func(h http.Handler) http.Handler {
+		return authSvc.Middleware().Require("ingest", h)
+	}
+	ingestSvc.Register(mux, guard)
+	authSvc.Register(mux)
 	parserSvc.RegisterRoutes(mux)
 	indexSvc.Register(mux)
 	queryEngine.Register(mux)

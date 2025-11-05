@@ -20,8 +20,16 @@ func NewService(cfg config.Config, sink Sink) *Service {
 	return &Service{cfg: cfg, http: httpHandler, tcp: tcpServer}
 }
 
-func (s *Service) Register(mux *http.ServeMux) {
-	mux.Handle("/ingest", s.http)
+func (s *Service) HTTPHandler() http.Handler {
+	return s.http
+}
+
+func (s *Service) Register(mux *http.ServeMux, guard func(http.Handler) http.Handler) {
+	handler := s.http
+	if guard != nil {
+		handler = guard(handler)
+	}
+	mux.Handle("/ingest", handler)
 	mux.HandleFunc("/ingest/stats", func(w http.ResponseWriter, r *http.Request) {
 		a, rej := s.http.Stats()
 		w.Header().Set("Content-Type", "application/json")

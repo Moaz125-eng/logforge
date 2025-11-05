@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/Moaz125-eng/logforge/internal/alert"
+	"github.com/Moaz125-eng/logforge/internal/auth"
 	"github.com/Moaz125-eng/logforge/internal/config"
 	"github.com/Moaz125-eng/logforge/internal/forward"
 	"github.com/Moaz125-eng/logforge/internal/metrics"
@@ -37,6 +38,7 @@ func main() {
 	forwardSvc := forward.NewService(cfg)
 	metricsSvc := metrics.NewService()
 	alertSvc := alert.NewService("")
+	authSvc := auth.NewService()
 	indexSvc := index.NewService()
 	pipeSvc := pipeline.NewService(cfg, parserSvc.Parse, func(e logentry.Entry) error {
 		alertSvc.Watch(e)
@@ -66,7 +68,7 @@ func main() {
 	}
 
 	queryEngine := query.NewEngine(indexSvc.Store())
-	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc, queryEngine, storageSvc, streamSvc, forwardSvc, metricsSvc, alertSvc)
+	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc, queryEngine, storageSvc, streamSvc, forwardSvc, metricsSvc, alertSvc, authSvc)
 	httpServer := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: mux,
