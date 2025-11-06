@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 
+	"github.com/Moaz125-eng/logforge/internal/aggregate"
 	"github.com/Moaz125-eng/logforge/internal/alert"
 	"github.com/Moaz125-eng/logforge/internal/auth"
 	"github.com/Moaz125-eng/logforge/internal/config"
@@ -16,7 +17,7 @@ import (
 	"github.com/Moaz125-eng/logforge/internal/stream"
 )
 
-func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Service, indexSvc *index.Service, queryEngine *query.Engine, storageSvc *storage.Service, streamSvc *stream.Service, forwardSvc *forward.Service, metricsSvc *metrics.Service, alertSvc *alert.Service, authSvc *auth.Service) *http.ServeMux {
+func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Service, indexSvc *index.Service, queryEngine *query.Engine, storageSvc *storage.Service, streamSvc *stream.Service, forwardSvc *forward.Service, metricsSvc *metrics.Service, alertSvc *alert.Service, authSvc *auth.Service, aggregateSvc *aggregate.Service) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", HealthHandler(cfg.NodeID))
 	guard := func(h http.Handler) http.Handler {
@@ -32,6 +33,7 @@ func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Serv
 	forwardSvc.Register(mux)
 	metricsSvc.Register(mux)
 	alertSvc.Register(mux)
+	aggregateSvc.Register(mux)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
