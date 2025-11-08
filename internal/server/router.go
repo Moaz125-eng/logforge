@@ -7,6 +7,7 @@ import (
 	"github.com/Moaz125-eng/logforge/internal/alert"
 	"github.com/Moaz125-eng/logforge/internal/auth"
 	"github.com/Moaz125-eng/logforge/internal/config"
+	"github.com/Moaz125-eng/logforge/internal/export"
 	"github.com/Moaz125-eng/logforge/internal/forward"
 	"github.com/Moaz125-eng/logforge/internal/metrics"
 	"github.com/Moaz125-eng/logforge/internal/ingest"
@@ -17,7 +18,7 @@ import (
 	"github.com/Moaz125-eng/logforge/internal/stream"
 )
 
-func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Service, indexSvc *index.Service, queryEngine *query.Engine, storageSvc *storage.Service, streamSvc *stream.Service, forwardSvc *forward.Service, metricsSvc *metrics.Service, alertSvc *alert.Service, authSvc *auth.Service, aggregateSvc *aggregate.Service) *http.ServeMux {
+func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Service, indexSvc *index.Service, queryEngine *query.Engine, storageSvc *storage.Service, streamSvc *stream.Service, forwardSvc *forward.Service, metricsSvc *metrics.Service, alertSvc *alert.Service, authSvc *auth.Service, aggregateSvc *aggregate.Service, exportSvc *export.Service) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", HealthHandler(cfg.NodeID))
 	guard := func(h http.Handler) http.Handler {
@@ -34,6 +35,7 @@ func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Serv
 	metricsSvc.Register(mux)
 	alertSvc.Register(mux)
 	aggregateSvc.Register(mux)
+	exportSvc.Register(mux)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)

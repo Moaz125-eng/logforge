@@ -12,6 +12,7 @@ import (
 	"github.com/Moaz125-eng/logforge/internal/alert"
 	"github.com/Moaz125-eng/logforge/internal/auth"
 	"github.com/Moaz125-eng/logforge/internal/config"
+	"github.com/Moaz125-eng/logforge/internal/export"
 	"github.com/Moaz125-eng/logforge/internal/forward"
 	"github.com/Moaz125-eng/logforge/internal/metrics"
 	"github.com/Moaz125-eng/logforge/internal/index"
@@ -71,7 +72,8 @@ func main() {
 	}
 
 	queryEngine := query.NewEngine(indexSvc.Store())
-	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc, queryEngine, storageSvc, streamSvc, forwardSvc, metricsSvc, alertSvc, authSvc, aggregateSvc)
+	exportSvc := export.NewService(indexSvc.Store())
+	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc, queryEngine, storageSvc, streamSvc, forwardSvc, metricsSvc, alertSvc, authSvc, aggregateSvc, exportSvc)
 	httpServer := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: mux,
