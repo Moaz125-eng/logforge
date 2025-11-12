@@ -28,6 +28,7 @@ import (
 
 func main() {
 	cfg := config.Load()
+	reloader := config.NewReloader(cfg)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -54,6 +55,7 @@ func main() {
 			metricsSvc.Collector().IncForwarded()
 		}
 		if err := storageSvc.Persist(e); err != nil {
+			ingestSvc.DLQ().Push(e, err)
 			return err
 		}
 		metricsSvc.Collector().IncStored()
@@ -74,7 +76,7 @@ func main() {
 	queryEngine := query.NewEngine(indexSvc.Store())
 	savedSvc := query.NewSavedService()
 	exportSvc := export.NewService(indexSvc.Store())
-	mux := server.NewMux(cfg, ingestSvc, parserSvc, indexSvc, queryEngine, savedSvc, storageSvc, streamSvc, forwardSvc, metricsSvc, alertSvc, authSvc, aggregateSvc, exportSvc)
+	mux := server.NewMux(cfg, reloader, ingestSvc, parserSvc, indexSvc, queryEngine, savedSvc, storageSvc, streamSvc, forwardSvc, metricsSvc, alertSvc, authSvc, aggregateSvc, exportSvc)
 	httpServer := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: mux,

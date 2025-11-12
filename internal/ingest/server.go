@@ -12,12 +12,13 @@ type Service struct {
 	cfg    config.Config
 	http   *Handler
 	tcp    *TCPServer
+	dlq    *DLQ
 }
 
 func NewService(cfg config.Config, sink Sink) *Service {
 	httpHandler := NewHandler(sink)
 	tcpServer := NewTCPServer(cfg.TCPAddr, sink)
-	return &Service{cfg: cfg, http: httpHandler, tcp: tcpServer}
+	return &Service{cfg: cfg, http: httpHandler, tcp: tcpServer, dlq: NewDLQ(1000, 5)}
 }
 
 func (s *Service) HTTPHandler() http.Handler {
@@ -30,6 +31,7 @@ func (s *Service) Register(mux *http.ServeMux, guard func(http.Handler) http.Han
 		handler = guard(handler)
 	}
 	mux.Handle("/ingest", handler)
+	s.dlq.Register(mux, s.replaySink())
 	mux.HandleFunc("/ingest/stats", func(w http.ResponseWriter, r *http.Request) {
 		a, rej := s.http.Stats()
 		w.Header().Set("Content-Type", "application/json")
@@ -43,6 +45,16 @@ func (s *Service) Start(ctx context.Context) error {
 
 func (s *Service) Wait() {
 	s.tcp.Wait()
+}
+
+func (s *Service) DLQ() *DLQ {
+	return s.dlq
+}
+
+func (s *Service) replaySink() func(logentry.Entry) error {
+	return func(entry logentry.Entry) error {
+		return s.http.sink(entry)
+	}
 }
 
 func noopSink(e logentry.Entry) error {
