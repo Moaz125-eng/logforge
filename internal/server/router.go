@@ -18,9 +18,10 @@ import (
 	"github.com/Moaz125-eng/logforge/internal/stream"
 )
 
-func NewMux(cfg config.Config, ingestSvc *ingest.Service, parserSvc *parser.Service, indexSvc *index.Service, queryEngine *query.Engine, savedSvc *query.SavedService, storageSvc *storage.Service, streamSvc *stream.Service, forwardSvc *forward.Service, metricsSvc *metrics.Service, alertSvc *alert.Service, authSvc *auth.Service, aggregateSvc *aggregate.Service, exportSvc *export.Service) *http.ServeMux {
+func NewMux(cfg config.Config, reloader *config.Reloader, ingestSvc *ingest.Service, parserSvc *parser.Service, indexSvc *index.Service, queryEngine *query.Engine, savedSvc *query.SavedService, storageSvc *storage.Service, streamSvc *stream.Service, forwardSvc *forward.Service, metricsSvc *metrics.Service, alertSvc *alert.Service, authSvc *auth.Service, aggregateSvc *aggregate.Service, exportSvc *export.Service) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", HealthHandler(cfg.NodeID))
+	reloader.Register(mux)
 	guard := func(h http.Handler) http.Handler {
 		return authSvc.Middleware().Require("ingest", h)
 	}
